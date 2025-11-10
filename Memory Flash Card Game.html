@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="el">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flash Memory — Μινιμαλιστικό</title>
+  <style>
+    :root{--bg:#f7f7fb;--card:#fff;--muted:#6b7280;--accent:#4f46e5;--glass:rgba(255,255,255,0.6)}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;color:#0f172a;background:linear-gradient(180deg,var(--bg),#fff);-webkit-font-smoothing:antialiased}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    h1{margin:0;font-size:20px}
+    .controls{display:flex;gap:10px;align-items:center}
+    .card-grid{display:grid;gap:12px}
+    .grid-4{grid-template-columns:repeat(4,1fr)}
+    .grid-6{grid-template-columns:repeat(6,1fr)}
+    .card{background:var(--card);border-radius:12px;aspect-ratio:3/4;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 10px rgba(2,6,23,0.06);position:relative;user-select:none}
+    .card .front, .card .back{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;border-radius:12px;transition:transform .32s, opacity .32s}
+    .card .front{transform:rotateY(180deg);backface-visibility:hidden}
+    .card .back{background:linear-gradient(180deg,#eef2ff,#f8fafc);color:var(--muted);font-weight:600}
+    .card.flipped .back{transform:rotateY(180deg);opacity:0}
+    .card.flipped .front{transform:rotateY(0deg);opacity:1}
+    .info{display:flex;gap:12px;align-items:center}
+    .panel{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.04)}
+    .sidebar{width:300px;flex-shrink:0}
+    .main{flex:1}
+    .layout{display:flex;gap:18px}
+    .btn{background:var(--card);border-radius:10px;padding:8px 12px;border:1px solid rgba(15,23,42,0.04);cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+    .power{display:flex;gap:8px;flex-wrap:wrap}
+    .power button{padding:8px 10px;border-radius:10px;border:1px solid rgba(15,23,42,0.04);cursor:pointer}
+    .small{font-size:13px}
+    .topbar{display:flex;gap:12px;align-items:center}
+    .stats{display:flex;gap:10px;align-items:center}
+    footer{text-align:center;margin-top:14px;color:var(--muted);font-size:13px}
+    .badge{background:rgba(79,70,229,0.08);color:var(--accent);padding:6px 8px;border-radius:8px;font-weight:600}
+    .ach-list{display:flex;flex-direction:column;gap:8px}
+    .ach{padding:8px;border-radius:8px;background:linear-gradient(180deg,#fff,#fbfbff);border:1px dashed rgba(15,23,42,0.03)}
+    @media (max-width:900px){.layout{flex-direction:column}.sidebar{width:100%}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Flash Memory — Μινιμαλιστικό</h1>
+      <div class="controls">
+        <div class="stats muted">Πόντοι: <strong id="pts">0</strong></div>
+        <div class="stats muted">Επίπεδο: <strong id="lvl">1</strong></div>
+        <button class="btn" id="resetLocal">Επαναφορά</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar panel">
+        <div style="margin-bottom:12px">
+          <div class="small">Λειτουργία</div>
+          <select id="mode" style="width:100%;margin-top:8px;padding:8px;border-radius:8px">
+            <option value="classic">Κλασικό</option>
+            <option value="time">Time Attack</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div class="small">Θέμα</div>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn" data-theme="emoji">Emojis</button>
+            <button class="btn" data-theme="vocab">Greek Vocab</button>
+            <button class="btn" data-theme="shapes">Shapes</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div class="small">Power-ups</div>
+          <div class="power" style="margin-top:8px">
+            <button id="puReveal">Δείξε 1 (200)</button>
+            <button id="puFreeze">Πάγωμα χρόνου (150)</button>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px">
+          <div class="small">Προοδευτική Δυσκολία</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" id="lvlDown">-</button>
+            <div class="badge" id="levelBadge">1</div>
+            <button class="btn" id="lvlUp">+</button>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <div class="small">Στοιχεία</div>
+          <div class="muted small" style="margin-top:8px">Κινήσεις: <span id="mv">0</span></div>
+          <div class="muted small">Matched: <span id="matched">0</span>/<span id="totalPairs">0</span></div>
+          <div class="muted small" id="timeBox" style="margin-top:8px;">Χρόνος: -</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small">Ξεκλείδ. Θέματα</div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn unlock" data-unlock="vocab">Ξεκλείδ. "Vocab" (1000)</button>
+            <button class="btn unlock" data-unlock="shapes">Ξεκλείδ. "Shapes" (800)</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small">Επιτεύγματα</div>
+          <div class="ach-list" id="achList" style="margin-top:8px">
+            <div class="muted small">Κανένα ακόμα — παίξτε!</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="muted">Τρόπος: <strong id="modeLabel">Κλασικό</strong></div>
+            <div style="display:flex;gap:8px">
+              <button class="btn" id="shuffleBtn">Ανακάτεμα</button>
+              <button class="btn" id="newGameBtn">Νέο Παιχνίδι</button>
+            </div>
+          </div>
+
+          <div id="boardWrap">
+            <div id="cardGrid" class="card-grid grid-4"></div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <footer>Μοντέρνο & Μινιμαλιστικό — Παίξτε τοπικά!</footer>
+  </div>
+
+  <script>
+    /* ======= Updated Themes ======= */
+    const THEMES = {
+      emoji: { name: 'Emojis', cards: [
+        '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮',
+        '🐷','🐸','🐵','🐔','🐧','🐦','🐤','🦆','🦅','🦉','🦇','🐺',
+        '🌵','🌳','🌻','🌸','🌞','🌙','⭐','⚡','🔥','💧','❄️','🌈',
+        '🍎','🍊','🍇','🍉','🍓','🍒','🍌','🍕','🍔','🎮','🎲','🎵',
+        '🚗','🚀','✈️','⚽','🏀'
+      ]},
+      vocab: { name: 'Greek Vocab', cards: [
+        {f:'γάτα',b:'cat'},{f:'σκύλος',b:'dog'},{f:'βιβλίο',b:'book'},{f:'ήλιος',b:'sun'},
+        {f:'νερό',b:'water'},{f:'μήλο',b:'apple'},{f:'πόρτα',b:'door'},{f:'παράθυρο',b:'window'},
+        {f:'σχολείο',b:'school'},{f:'δέντρο',b:'tree'},{f:'θάλασσα',b:'sea'},{f:'ουρανός',b:'sky'},
+        {f:'σπίτι',b:'house'},{f:'άνθρωπος',b:'human'},{f:'πόλη',b:'city'},{f:'φίλος',b:'friend'},
+        {f:'αγάπη',b:'love'},{f:'χρόνος',b:'time'},{f:'ζωή',b:'life'},{f:'παιχνίδι',b:'game'}
+      ]},
+      shapes: { name: 'Shapes', cards: [
+        '■','▲','●','◆','✳','⬟','✦','✶','⬠','⬢','⬣','⬤','⯀','⯁','⯂','⯃','⯄','⯅'
+      ]}
+    };
+
+    const POWER_COST = { reveal:200, freeze:150 };
+
+    let state = {
+      theme: localStorage.getItem('mf_theme') || 'emoji',
+      mode: localStorage.getItem('mf_mode') || 'classic',
+      level: Number(localStorage.getItem('mf_level') || 1),
+      points: Number(localStorage.getItem('mf_points') || 0),
+      achievements: JSON.parse(localStorage.getItem('mf_ach') || '[]'),
+      unlocked: JSON.parse(localStorage.getItem('mf_unlocked') || '["emoji"]'),
+      deck: [], flipped: [], matched: new Set(), moves:0, timeLeft:0, timer:null, paused:false
+    };
+
+    function qs(id){return document.getElementById(id)}
+    function save(){
+      localStorage.setItem('mf_theme',state.theme);
+      localStorage.setItem('mf_mode',state.mode);
+      localStorage.setItem('mf_level',state.level);
+      localStorage.setItem('mf_points',state.points);
+      localStorage.setItem('mf_unlocked',JSON.stringify(state.unlocked));
+      localStorage.setItem('mf_ach',JSON.stringify(state.achievements));
+    }
+
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a}
+
+    function makeDeck(themeKey,pairs){
+      const theme = THEMES[themeKey];
+      const values = theme.cards.slice(0,pairs);
+      const deck=[];
+      values.forEach((v,i)=>{deck.push({pairId:i,uid:i+'a',value:v});deck.push({pairId:i,uid:i+'b',value:v});});
+      return shuffle(deck);
+    }
+
+    const ptsEl=qs('pts'),lvlEl=qs('lvl'),mvEl=qs('mv'),matchedEl=qs('matched'),totalPairsEl=qs('totalPairs');
+    const cardGrid=qs('cardGrid'),modeSelect=qs('mode'),modeLabel=qs('modeLabel'),timeBox=qs('timeBox');
+
+    function renderStats(){
+      ptsEl.textContent=state.points;lvlEl.textContent=state.level;mvEl.textContent=state.moves;
+      matchedEl.textContent=Math.floor(state.matched.size/2);totalPairsEl.textContent=state.deck.length/2;
+      qs('levelBadge').textContent=state.level;
+      modeLabel.textContent=modeSelect.options[modeSelect.selectedIndex].text;
+      timeBox.textContent=state.mode==='time'?(state.paused?'ΠΑΓΩΜΕΝΟΣ':'Χρόνος: '+state.timeLeft+'s'):'Χρόνος: -';
+    }
+
+    function renderAchievements(){
+      const list=qs('achList');list.innerHTML='';
+      if(state.achievements.length===0){list.innerHTML='<div class="muted small">Κανένα ακόμα — παίξτε!</div>';return;}
+      state.achievements.forEach(a=>{const d=document.createElement('div');d.className='ach small';d.textContent=a.label+' • +'+a.pts+' pts';list.appendChild(d);});
+    }
+
+    function startGame(){
+      const maxLevel=15;
+      if(state.level>maxLevel) state.level=maxLevel;
+      const pairCount=Math.min(4+(state.level-1),18);
+      const themeCards=THEMES[state.theme].cards;
+      const uniqueCount=themeCards.length;
+      const usablePairs=Math.min(pairCount,uniqueCount);
+      state.deck=makeDeck(state.theme,usablePairs);
+      state.flipped=[];state.matched=new Set();state.moves=0;state.paused=false;
+      if(state.mode==='time')state.timeLeft=Math.max(15,60-(state.level-1)*3);
+      clearInterval(state.timer);
+      if(state.mode==='time')state.timer=setInterval(()=>{if(!state.paused){state.timeLeft--;if(state.timeLeft<=0){lose('Ο χρόνος τελείωσε');}}renderStats();},1000);
+      renderBoard();renderStats();renderAchievements();save();
+    }
+
+    function renderBoard(){
+      const cols=state.deck.length>16?'grid-6':'grid-4';
+      cardGrid.className='card-grid '+cols;
+      cardGrid.innerHTML='';
+      state.deck.forEach(card=>{
+        const el=document.createElement('div');el.className='card';el.dataset.uid=card.uid;
+        const back=document.createElement('div');back.className='back';back.textContent='?';
+        const front=document.createElement('div');front.className='front';
+        if(typeof card.value==='string')front.innerHTML='<div style="font-size:26px">'+card.value+'</div>';
+        else front.innerHTML='<div style="text-align:center"><b>'+card.value.f+'</b><div style="font-size:12px;opacity:.6">'+card.value.b+'</div></div>';
+        el.append(back,front);
+        if(state.flipped.includes(card.uid)||state.matched.has(card.uid))el.classList.add('flipped');
+        el.onclick=()=>onCardClick(card.uid);
+        cardGrid.appendChild(el);
+      });
+    }
+
+    function onCardClick(uid){
+      if(state.flipped.includes(uid)||state.matched.has(uid))return;
+      if(state.flipped.length===2)return;
+      state.flipped.push(uid);renderBoard();
+      if(state.flipped.length===2){
+        state.moves++;renderStats();
+        const a=state.deck.find(x=>x.uid===state.flipped[0]),b=state.deck.find(x=>x.uid===state.flipped[1]);
+        if(a.pairId===b.pairId){
+          setTimeout(()=>{state.matched.add(a.uid);state.matched.add(b.uid);state.flipped=[];state.points+=100;renderBoard();renderStats();if(state.matched.size===state.deck.length)win();save();},500);
+        } else setTimeout(()=>{state.flipped=[];renderBoard();},700);
+      }
+    }
+
+    function win(){
+      state.points+=200+state.level*10;state.level++;if(state.level>15){alert('Μέγιστο επίπεδο 15!');state.level=15;}save();startGame();
+    }
+    function lose(msg){alert(msg||'Έχασες!');startGame();}
+
+    function useReveal(){if(state.points<POWER_COST.reveal)return alert('Λίγοι πόντοι');state.points-=POWER_COST.reveal;
+      const unmatched=state.deck.filter(d=>!state.matched.has(d.uid));
+      const grouped=unmatched.reduce((a,c)=>(a[c.pairId]=a[c.pairId]||[]).push(c)&&a,{});
+      const pair=Object.values(grouped).find(x=>x.length===2);
+      if(!pair)return;
+      state.flipped=[pair[0].uid,pair[1].uid];renderBoard();
+      setTimeout(()=>{state.flipped=[];renderBoard();save();},1200);
+    }
+    function useFreeze(){if(state.points<POWER_COST.freeze)return alert('Λίγοι πόντοι');state.points-=POWER_COST.freeze;state.paused=true;setTimeout(()=>{state.paused=false;},8000);}
+
+    qs('resetLocal').onclick=()=>{if(confirm('Επαναφορά;')){localStorage.clear();location.reload();}}
+    modeSelect.onchange=()=>{state.mode=modeSelect.value;save();startGame();}
+    document.querySelectorAll('[data-theme]').forEach(b=>b.onclick=e=>{const t=e.target.dataset.theme;if(!state.unlocked.includes(t))return alert('Κλειδωμένο θέμα');state.theme=t;save();startGame();});
+    qs('shuffleBtn').onclick=()=>{state.deck=shuffle(state.deck);renderBoard();}
+    qs('newGameBtn').onclick=()=>startGame();
+    qs('puReveal').onclick=()=>useReveal();
+    qs('puFreeze').onclick=()=>useFreeze();
+    qs('lvlUp').onclick=()=>{if(state.level<15){state.level++;save();startGame();}else alert('Μέγιστο επίπεδο 15.');};
+    qs('lvlDown').onclick=()=>{if(state.level>1){state.level--;save();startGame();}};
+    document.querySelectorAll('.unlock').forEach(b=>b.onclick=e=>{
+      const k=e.target.dataset.unlock,cost=k==='vocab'?1000:800;
+      if(state.points>=cost){if(!state.unlocked.includes(k))state.unlocked.push(k);state.points-=cost;alert('Ξεκλειδώθηκε '+k);}
+      else alert('Απαιτούνται '+cost+' πόντοι');
+      save();renderStats();
+    });
+
+    modeSelect.value=state.mode;renderStats();renderAchievements();startGame();
+  </script>
+</body>
+</html>
